@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>高雄市議員第八選區｜投票轉盤</title>
+<style>
+:root{--bg:#f6f4ef;--fg:#1f2430;--muted:#6b7280;--ring:#ffffff;--shadow:rgba(0,0,0,.18);
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15171c;--fg:#f1f1f1;--muted:#9aa0aa;--ring:#2a2e37;--shadow:rgba(0,0,0,.5)}}
+:root[data-theme="dark"]{--bg:#15171c;--fg:#f1f1f1;--muted:#9aa0aa;--ring:#2a2e37;--shadow:rgba(0,0,0,.5)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px 16px}
+h1{margin:0;font-size:clamp(22px,5vw,30px)}
+p.sub{margin:0;color:var(--muted);font-size:14px}
+.stage{position:relative;width:min(88vw,420px);aspect-ratio:1}
+canvas{width:100%;height:100%;display:block;border-radius:50%;box-shadow:0 8px 28px var(--shadow)}
+.pointer{position:absolute;left:50%;top:-14px;transform:translateX(-50%);width:0;height:0;
+  border-left:16px solid transparent;border-right:16px solid transparent;border-top:34px solid #e63946;
+  filter:drop-shadow(0 2px 3px var(--shadow));z-index:2}
+#go{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:22%;aspect-ratio:1;border-radius:50%;
+  border:5px solid var(--ring);background:#e63946;color:#fff;font-size:clamp(18px,5vw,26px);font-weight:800;cursor:pointer;
+  box-shadow:0 4px 12px var(--shadow);z-index:3}
+#go:active{transform:translate(-50%,-50%) scale(.95)}
+#go:disabled{opacity:.7;cursor:default}
+#result{min-height:2.2em;font-size:clamp(22px,6vw,32px);font-weight:800;text-align:center}
+#result.pop{animation:pop .4s ease}
+@keyframes pop{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<h1>🗳️ 投票轉盤</h1>
+<p class="sub">不知道投誰？交給命運吧</p>
+<div class="stage">
+  <div class="pointer"></div>
+  <canvas id="wheel"></canvas>
+  <button id="go">Go</button>
+</div>
+<div id="result"></div>
+<script>
+const items=[
+  {no:"4號",name:"湯詠瑜",color:"#e76f51"},
+  {no:"5號",name:"黃文益",color:"#2a9d8f"},
+  {no:"9號",name:"郭建盟",color:"#4361ee"}
+];
+const cv=document.getElementById("wheel"),ctx=cv.getContext("2d");
+const btn=document.getElementById("go"),res=document.getElementById("result");
+const N=items.length,SEG=2*Math.PI/N,TAU=2*Math.PI;
+let rot=0,spinning=false,size=0;
+
+function resize(){
+  const d=window.devicePixelRatio||1,w=cv.clientWidth;
+  size=w;cv.width=w*d;cv.height=w*d;ctx.setTransform(d,0,0,d,0,0);draw();
+}
+function draw(){
+  const r=size/2;ctx.clearRect(0,0,size,size);
+  ctx.save();ctx.translate(r,r);
+  items.forEach((it,i)=>{
+    const a0=-Math.PI/2+rot+i*SEG,a1=a0+SEG;
+    ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,r,a0,a1);ctx.closePath();
+    ctx.fillStyle=it.color;ctx.fill();
+    ctx.lineWidth=3;ctx.strokeStyle="rgba(255,255,255,.85)";ctx.stroke();
+    ctx.save();ctx.rotate(a0+SEG/2);ctx.textAlign="center";ctx.fillStyle="#fff";
+    ctx.font="700 "+size*0.07+"px sans-serif";ctx.fillText(it.no,r*0.62,-size*0.012);
+    ctx.font="800 "+size*0.085+"px sans-serif";ctx.fillText(it.name,r*0.62,size*0.085);
+    ctx.restore();
+  });
+  ctx.restore();
+}
+function spin(){
+  if(spinning)return;
+  spinning=true;btn.disabled=true;res.textContent="";res.classList.remove("pop");
+  const w=Math.floor(Math.random()*N);
+  const c=(w+0.5+(Math.random()-0.5)*0.7)*SEG;
+  const start=rot;
+  const delta=(((-c-start)%TAU)+TAU)%TAU+TAU*(5+Math.floor(Math.random()*3));
+  const dur=4800,t0=performance.now();
+  (function step(now){
+    const t=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-t,4);
+    rot=start+delta*e;draw();
+    if(t<1)requestAnimationFrame(step);
+    else{
+      spinning=false;btn.disabled=false;
+      res.textContent="那就投給 "+items[w].no+items[w].name+" 吧！";
+      void res.offsetWidth;res.classList.add("pop");
+    }
+  })(t0);
+}
+btn.addEventListener("click",spin);
+window.addEventListener("resize",resize);
+resize();
+</script>
+</body>
+</html>
